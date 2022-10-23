@@ -31,6 +31,11 @@
 #include <string.h>
 #include <stdbool.h>
 
+#undef min
+#undef max
+//#define _CRT_SECURE_NO_WARNINGS
+#pragma warning(disable: 4996)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,6 +58,7 @@ struct xml_string;
  * Tries to parse the XML fragment in buffer
  *
  * @param buffer Chunk to parse
+ * @param initial_offset Where the XML proper begins in the  buffer (allows skipping <?xml.... /> )
  * @param length Size of the buffer
  *
  * @warning `buffer` will be referenced by the document, you may not free it
@@ -62,7 +68,7 @@ struct xml_string;
  *
  * @return The parsed xml fragment iff parsing was successful, 0 otherwise
  */
-struct xml_document* xml_parse_document(uint8_t* buffer, size_t length);
+struct xml_document* xml_parse_document(uint8_t* buffer, int initial_offset, size_t length);
 
 
 
@@ -78,6 +84,12 @@ struct xml_document* xml_parse_document(uint8_t* buffer, size_t length);
  */
 struct xml_document* xml_open_document(FILE* source);
 
+
+/**
+ * Write a document to disk. If the documet was read from a file containing a
+ * <?xml... header, that header will be written out first.
+ */
+void xml_write_document(FILE* dest, struct xml_document* document);
 
 
 /**
@@ -146,6 +158,23 @@ struct xml_string* xml_node_attribute_name(struct xml_node* node, size_t attribu
 struct xml_string* xml_node_attribute_content(struct xml_node* node, size_t attribute);
 
 
+/**
+ * @return the attribute number, given its name, or -1 if not found
+ */
+int xml_node_attribute_by_name(struct xml_node* node, uint8_t* attr);
+
+
+/**
+ * @return the attribute content, given its name, or 0 if not found
+ */
+struct xml_string* xml_node_attribute_content_by_name(struct xml_node* node, uint8_t* attr);
+
+
+/**
+ * Replace the content of the given attribute with a given null-terminated string
+ */
+void xml_node_attribute_replace_content(struct xml_node* node, size_t attribute, uint8_t *buffer);
+
 
 /**
  * @return The node described by the path or 0 if child cannot be found
@@ -186,6 +215,17 @@ size_t xml_string_length(struct xml_string* string);
  * @warning Will write at most length bytes, even if the string is longer
  */
 void xml_string_copy(struct xml_string* string, uint8_t* buffer, size_t length);
+
+
+/**
+ * Returns strncmp of XML string with buffer
+ */
+int xml_string_cmp(struct xml_string* string, uint8_t* buffer);
+
+/**
+ * Allocates new null-terminated string and copies the xml_string into it
+ */
+uint8_t* xml_string_clone(struct xml_string* s);
 
 #ifdef __cplusplus
 }
