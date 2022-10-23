@@ -451,6 +451,7 @@ static struct xml_attribute** xml_find_attributes(struct xml_parser* parser, str
 	xml_parser_info(parser, "find_attributes");
 	char* tmp;
 	char* rest = NULL;
+	char dummy_null[] = "\0";
 	char* token;
 	char* str_name;
 	char* str_content;
@@ -460,7 +461,7 @@ static struct xml_attribute** xml_find_attributes(struct xml_parser* parser, str
 	size_t new_elements;
 	struct xml_attribute* new_attribute;
 	struct xml_attribute** attributes;
-	int position;
+	//int position;
 
 	attributes = calloc(1, sizeof(struct xml_attribute*));
 	attributes[0] = 0;
@@ -515,13 +516,22 @@ static struct xml_attribute** xml_find_attributes(struct xml_parser* parser, str
 		str_name = xml_strtok_r(NULL, " =", &rest);
 		if (str_name == NULL)
 			break;
-		str_content = xml_strtok_r(NULL, "\"", &rest);		// TODO handle name="" (i.e. an empty string)
-		if (str_content == NULL)
-			break;
-
-		position = str_name - tmp;
 		start_name = &tag_open->buffer[str_name - tmp];
-		start_content = &tag_open->buffer[str_content - tmp];
+
+		// Handle name="" (i.e. an empty string) as a special case. Step over it.
+		if (rest[0] == '\"' && rest[1] == '\"')
+		{
+			str_content = dummy_null;
+			start_content = rest;
+			rest += 2;
+		}
+		else
+		{
+			str_content = xml_strtok_r(NULL, "\"", &rest);
+			if (str_content == NULL)
+				break;
+			start_content = &tag_open->buffer[str_content - tmp];
+		}
 
 		new_attribute = malloc(sizeof(struct xml_attribute));
 		new_attribute->name = malloc(sizeof(struct xml_string));
